@@ -12,12 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const folderModal = $('#folder-modal');
     let allFiles = [];
     let currentFolder = '';
+    let currentView = 'dashboard';
     const folderHistory = [];
 
     $('#refresh-btn').addEventListener('click', fetchFiles);
-    $('#search-input').addEventListener('input', renderFiles);
+    $('#search-input').addEventListener('input', () => { showExplorer(); renderFiles(); });
     $('#sort-select').addEventListener('change', renderFiles);
     $('#top-upload').addEventListener('click', openUpload);
+    $('#dashboard-upload').addEventListener('click', openUpload);
+    $('#overview-nav').addEventListener('click', showDashboard);
+    $('#view-all-files').addEventListener('click', () => navigateTo(''));
     $('#upload-nav').addEventListener('click', openUpload);
     $('#root-nav').addEventListener('click', () => navigateTo(''));
     $('#back-btn').addEventListener('click', goBack);
@@ -35,6 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#folder-tree').addEventListener('click', event => {
         const button = event.target.closest('[data-folder]');
         if (button) navigateTo(button.dataset.folder);
+    });
+    $('#dashboard-recent').addEventListener('click', event => {
+        const button = event.target.closest('[data-location]');
+        if (!button) return;
+        const filePath = button.dataset.location;
+        const parent = filePath.includes('/') ? filePath.slice(0, filePath.lastIndexOf('/')) : '';
+        navigateTo(parent);
     });
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click(); } });
@@ -68,13 +79,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openUpload() {
+        showExplorer();
         $('#upload-panel').classList.remove('collapsed');
         $('#upload-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         fileInput.click();
     }
 
     function navigateTo(path, remember = true) {
-        if (path === currentFolder) return;
+        const wasDashboard = currentView === 'dashboard';
+        showExplorer();
+        if (path === currentFolder) {
+            if (wasDashboard) {
+                $('#search-input').value = '';
+                renderFiles();
+            }
+            return;
+        }
         if (remember) folderHistory.push(currentFolder);
         currentFolder = path;
         $('#search-input').value = '';
@@ -94,6 +114,24 @@ document.addEventListener('DOMContentLoaded', () => {
         navigateTo(parent);
     }
 
+    function showDashboard() {
+        currentView = 'dashboard';
+        $('#overview-view').hidden = false;
+        $('#explorer-view').hidden = true;
+        $('#overview-nav').classList.add('active');
+        $('#root-nav').classList.remove('active');
+        renderBreadcrumbs();
+    }
+
+    function showExplorer() {
+        currentView = 'explorer';
+        $('#overview-view').hidden = true;
+        $('#explorer-view').hidden = false;
+        $('#overview-nav').classList.remove('active');
+        $('#root-nav').classList.toggle('active', !currentFolder);
+        renderBreadcrumbs();
+    }
+
     async function fetchFiles() {
         fileBrowser.innerHTML = '<div class="loading"><i class="ri-loader-4-line spin"></i> กำลังโหลดไฟล์…</div>';
         try {
@@ -105,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             $('#file-count').textContent = allFiles.filter(item => item.type === 'file').length.toLocaleString('th-TH');
             $('#folder-count').textContent = allFiles.filter(item => item.type === 'directory').length.toLocaleString('th-TH');
             $('#storage-used').textContent = formatBytes(allFiles.reduce((total, item) => total + (item.size || 0), 0));
+            renderDashboard();
             renderFiles();
         } catch (error) {
             fileBrowser.innerHTML = `<div class="empty-state"><i class="ri-error-warning-line"></i>${escapeHtml(error.message)}</div>`;
@@ -127,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#location-hint').textContent = currentFolder ? `ตำแหน่งปัจจุบัน: ${currentFolder}` : 'ตำแหน่งปัจจุบัน: คลังไฟล์หลัก';
         $('#back-btn').disabled = !folderHistory.length && !currentFolder;
         $('#up-btn').disabled = !currentFolder;
-        $('#root-nav').classList.toggle('active', !currentFolder);
+        $('#root-nav').classList.toggle('active', currentView === 'explorer' && !currentFolder);
         files.sort((a, b) => {
             if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
             if (sort === 'size') return (b.size || 0) - (a.size || 0);
@@ -152,6 +191,47 @@ document.addEventListener('DOMContentLoaded', () => {
             const icon = isImage ? 'ri-image-2-line' : isVideo ? 'ri-video-line' : 'ri-file-3-line';
             const preview = isImage || isVideo ? `<button class="action-btn" data-action="preview" data-path="${itemPath}" data-name="${name}" data-type="${ext}" title="ดูตัวอย่าง" aria-label="ดูตัวอย่าง ${name}"><i class="ri-eye-line"></i></button>` : '';
             return `<article class="file-item"><div class="item-main"><span class="file-icon ${iconClass}"><i class="${icon}"></i></span><div class="file-info"><div class="file-name" title="${name}">${name}</div><div class="file-path">${itemPath}</div></div></div><span class="file-size">${formatBytes(item.size)}</span><div class="file-actions">${preview}<a class="download-btn" href="/api/download?path=${encodedPath}" title="ดาวน์โหลด" aria-label="ดาวน์โหลด ${name}"><i class="ri-download-2-line"></i></a><button class="action-btn delete" data-action="delete" data-path="${itemPath}" title="ลบไฟล์" aria-label="ลบ ${name}"><i class="ri-delete-bin-line"></i></button></div></article>`;
+        }).join('');
+    }
+
+    function renderDashboard() {
+        const files = allFiles.filter(item => item.type === 'file');
+        const folders = allFiles.filter(item => item.type === 'directory');
+        const totalSize = files.reduce((total, file) => total + (file.size || 0), 0);
+        $('#dashboard-files').textContent = files.length.toLocaleString('th-TH');
+        $('#dashboard-folders').textContent = folders.length.toLocaleString('th-TH');
+        $('#dashboard-storage').textContent = formatBytes(totalSize);
+
+        const groups = [
+            { key: 'images', label: 'รูปภาพ', icon: 'ri-image-2-line', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'] },
+            { key: 'videos', label: 'วิดีโอ', icon: 'ri-video-line', extensions: ['mp4', 'mov', 'webm', 'ogg', 'mkv'] },
+            { key: 'documents', label: 'เอกสาร', icon: 'ri-file-text-line', extensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'] },
+            { key: 'others', label: 'ไฟล์อื่น ๆ', icon: 'ri-file-3-line', extensions: [] }
+        ];
+        const grouped = groups.map(group => ({
+            ...group,
+            count: files.filter(file => {
+                const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+                const known = groups.slice(0, 3).some(candidate => candidate.extensions.includes(ext));
+                return group.key === 'others' ? !known : group.extensions.includes(ext);
+            }).length
+        }));
+        const maxCount = Math.max(files.length, 1);
+        $('#dashboard-types').innerHTML = grouped.map(group => `<div class="type-row"><div class="type-label"><span class="type-icon ${group.key}"><i class="${group.icon}"></i></span><span>${group.label}</span><strong>${group.count.toLocaleString('th-TH')}</strong></div><div class="type-track"><span class="type-bar ${group.key}" style="width:${Math.round(group.count / maxCount * 100)}%"></span></div></div>`).join('');
+
+        const recentFiles = [...files].sort((a, b) => new Date(b.modifiedAt || 0) - new Date(a.modifiedAt || 0)).slice(0, 6);
+        if (!recentFiles.length) {
+            $('#dashboard-recent').innerHTML = '<div class="dashboard-empty"><i class="ri-inbox-2-line"></i><span>ยังไม่มีไฟล์ในคลัง</span></div>';
+            return;
+        }
+        $('#dashboard-recent').innerHTML = recentFiles.map(file => {
+            const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+            const image = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
+            const video = ['mp4', 'mov', 'webm', 'ogg', 'mkv'].includes(ext);
+            const icon = image ? 'ri-image-2-line' : video ? 'ri-video-line' : 'ri-file-3-line';
+            const groupClass = image ? 'images' : video ? 'videos' : 'others';
+            const modified = file.modifiedAt ? new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(file.modifiedAt)) : '—';
+            return `<button class="recent-file" type="button" data-location="${escapeHtml(file.path)}" title="เปิดตำแหน่งไฟล์"><span class="recent-icon ${groupClass}"><i class="${icon}"></i></span><span class="recent-info"><strong>${escapeHtml(file.name)}</strong><small>${escapeHtml(file.path)}</small></span><span class="recent-date">${escapeHtml(modified)}</span><span class="recent-size">${formatBytes(file.size)}</span></button>`;
         }).join('');
     }
 
@@ -223,6 +303,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderBreadcrumbs() {
+        if (currentView === 'dashboard') {
+            $('#breadcrumbs').innerHTML = '<strong aria-current="page"><i class="ri-dashboard-3-line"></i> ภาพรวม</strong>';
+            $('#back-btn').disabled = true;
+            $('#up-btn').disabled = true;
+            return;
+        }
         const parts = currentFolder ? currentFolder.split('/') : [];
         const crumbItems = [{ label: 'คลังไฟล์หลัก', path: '' }];
         let path = '';

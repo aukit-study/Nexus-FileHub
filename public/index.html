@@ -21,7 +21,8 @@
             </a>
             <div class="side-label">การเข้าถึงด่วน</div>
             <nav class="side-nav" aria-label="เมนูหลัก">
-                <button class="nav-item active" id="root-nav"><i class="ri-hard-drive-2-line"></i> ไฟล์ทั้งหมด</button>
+                <button class="nav-item active" id="overview-nav"><i class="ri-dashboard-3-line"></i> ภาพรวม</button>
+                <button class="nav-item" id="root-nav"><i class="ri-hard-drive-2-line"></i> ไฟล์ทั้งหมด</button>
                 <button class="nav-item" id="upload-nav"><i class="ri-upload-cloud-2-line"></i> อัปโหลดไฟล์</button>
             </nav>
             <div class="side-label folder-tree-label">โฟลเดอร์</div>
@@ -41,7 +42,20 @@
                 </div>
             </header>
 
-            <div class="page-content">
+            <section class="dashboard-view" id="overview-view">
+                <div class="dashboard-heading"><div><p class="eyebrow">NEXUS FILEHUB</p><h1>ภาพรวมคลังไฟล์</h1><p>สรุปข้อมูลและกิจกรรมล่าสุดในพื้นที่จัดเก็บของคุณ</p></div><button class="primary-btn" id="dashboard-upload"><i class="ri-upload-2-line"></i> อัปโหลดไฟล์</button></div>
+                <div class="dashboard-stats">
+                    <article class="dashboard-stat"><span class="dashboard-stat-icon violet"><i class="ri-file-list-3-line"></i></span><div><span>ไฟล์ทั้งหมด</span><strong id="dashboard-files">0</strong><small>รายการในคลัง</small></div></article>
+                    <article class="dashboard-stat"><span class="dashboard-stat-icon amber"><i class="ri-folder-3-line"></i></span><div><span>โฟลเดอร์</span><strong id="dashboard-folders">0</strong><small>โฟลเดอร์ทั้งหมด</small></div></article>
+                    <article class="dashboard-stat"><span class="dashboard-stat-icon teal"><i class="ri-database-2-line"></i></span><div><span>พื้นที่ที่ใช้</span><strong id="dashboard-storage">0 B</strong><small>ขนาดรวมของไฟล์</small></div></article>
+                </div>
+                <div class="dashboard-grid">
+                    <section class="dashboard-panel types-panel"><div class="dashboard-panel-heading"><div><h2>ประเภทไฟล์</h2><p>สัดส่วนไฟล์ในคลัง</p></div><i class="ri-pie-chart-2-line panel-heading-icon"></i></div><div id="dashboard-types" class="type-breakdown"></div></section>
+                    <section class="dashboard-panel recent-panel"><div class="dashboard-panel-heading"><div><h2>ไฟล์ล่าสุด</h2><p>เรียงตามเวลาที่อัปโหลดหรือแก้ไข</p></div><button class="text-link" id="view-all-files">ดูไฟล์ทั้งหมด <i class="ri-arrow-right-line"></i></button></div><div id="dashboard-recent" class="recent-list"></div></section>
+                </div>
+            </section>
+
+            <div class="page-content" id="explorer-view" hidden>
                 <section class="explorer-actions" aria-label="คำสั่งไฟล์">
                     <button class="secondary-btn" id="new-folder"><i class="ri-folder-add-line"></i> ใหม่</button>
                     <span class="command-separator"></span>

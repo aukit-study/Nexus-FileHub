@@ -97,7 +97,7 @@ app.get('/api/files', (req, res) => {
                     results.push({ name, path: relativePath, type: 'directory' });
                     walk(absolutePath);
                 } else {
-                    results.push({ name, path: relativePath, type: 'file', size: stat.size });
+                    results.push({ name, path: relativePath, type: 'file', size: stat.size, modifiedAt: stat.mtime.toISOString() });
                 }
             }
         }
