@@ -29,8 +29,15 @@ function resolveUploadPath(relativePath = '') {
     return resolved;
 }
 
+function getUploadDirectory(req) {
+    const folderName = typeof req.body?.folderName === 'string' ? req.body.folderName : '';
+    return resolveUploadPath(folderName);
+}
+
 function uniqueFileName(directory, originalName) {
-    const safeName = path.basename(originalName).replace(/[<>:"|?*\x00-\x1f]/g, '_') || 'file';
+    if (typeof directory !== 'string') throw new Error('Upload destination is unavailable.');
+    const sourceName = typeof originalName === 'string' && originalName.length ? originalName : 'uploaded-file';
+    const safeName = path.basename(sourceName).replace(/[<>:"|?*\x00-\x1f]/g, '_') || 'file';
     const extension = path.extname(safeName);
     const base = path.basename(safeName, extension);
     let candidate = safeName;
@@ -45,7 +52,7 @@ function uniqueFileName(directory, originalName) {
 const storage = multer.diskStorage({
     destination(req, file, callback) {
         try {
-            const destination = resolveUploadPath(req.body.folderName || '');
+            const destination = getUploadDirectory(req);
             fs.mkdirSync(destination, { recursive: true });
             callback(null, destination);
         } catch (error) {
@@ -54,7 +61,7 @@ const storage = multer.diskStorage({
     },
     filename(req, file, callback) {
         try {
-            const destination = resolveUploadPath(req.body.folderName || '');
+            const destination = getUploadDirectory(req);
             callback(null, uniqueFileName(destination, file.originalname));
         } catch (error) {
             callback(error);
