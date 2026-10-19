@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f6f8fc">
+    <title>Nexus FileHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <a class="brand" href="#" aria-label="Nexus FileHub หน้าหลัก">
+                <span class="brand-mark"><i class="ri-cloud-fill"></i></span>
+                <span><strong>Nexus</strong><small>FILEHUB</small></span>
+            </a>
+            <div class="side-label">คลังไฟล์</div>
+            <nav class="side-nav" aria-label="เมนูหลัก">
+                <a class="nav-item active" href="#files"><i class="ri-hard-drive-2-line"></i> ไฟล์ทั้งหมด</a>
+                <button class="nav-item" id="upload-nav"><i class="ri-upload-cloud-2-line"></i> อัปโหลดไฟล์</button>
+            </nav>
+            <div class="sidebar-foot"><span class="status-dot"></span><span>เซิร์ฟเวอร์พร้อมใช้งาน</span></div>
+        </aside>
+
+        <main class="main-area" id="files">
+            <header class="topbar">
+                <div class="crumb"><span>คลังไฟล์</span><i class="ri-arrow-right-s-line"></i><strong>ไฟล์ทั้งหมด</strong></div>
+                <div class="top-actions">
+                    <span class="avatar"><i class="ri-user-3-line"></i></span>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <section class="welcome-row">
+                    <div><p class="eyebrow">พื้นที่จัดเก็บของคุณ</p><h1>ไฟล์ทั้งหมด</h1><p class="subheading">จัดเก็บ ค้นหา และจัดการไฟล์ได้ในที่เดียว</p></div>
+                    <button class="primary-btn" id="top-upload"><i class="ri-upload-2-line"></i> อัปโหลดไฟล์</button>
+                </section>
+
+                <section class="stats-grid" aria-label="สรุปคลังไฟล์">
+                    <article class="stat-card"><span class="stat-icon purple"><i class="ri-file-list-3-line"></i></span><div><span class="stat-label">ไฟล์ทั้งหมด</span><strong id="file-count">—</strong></div></article>
+                    <article class="stat-card"><span class="stat-icon blue"><i class="ri-folder-3-line"></i></span><div><span class="stat-label">โฟลเดอร์</span><strong id="folder-count">—</strong></div></article>
+                    <article class="stat-card"><span class="stat-icon mint"><i class="ri-database-2-line"></i></span><div><span class="stat-label">พื้นที่ที่ใช้</span><strong id="storage-used">—</strong></div></article>
+                </section>
+
+                <section class="panel upload-panel" id="upload-panel">
+                    <div class="section-heading"><div><h2>เพิ่มไฟล์เข้าสู่คลัง</h2><p>ลากไฟล์มาวาง หรือเลือกจากอุปกรณ์ของคุณ</p></div><button class="text-button" id="hide-upload" aria-label="ซ่อนส่วนอัปโหลด"><i class="ri-close-line"></i></button></div>
+                    <div class="upload-controls"><label class="folder-field"><span>บันทึกลงในโฟลเดอร์</span><input type="text" id="folder-name" placeholder="เช่น รูปภาพ/ทริปเชียงใหม่ (เว้นว่างเพื่อบันทึกไว้หน้าหลัก)"></label></div>
+                    <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="เลือกไฟล์เพื่ออัปโหลด">
+                        <input type="file" id="file-input" multiple hidden>
+                        <span class="upload-symbol"><i class="ri-upload-cloud-2-line"></i></span>
+                        <div><strong>วางไฟล์ที่นี่เพื่ออัปโหลด</strong><p>หรือ <span>เลือกไฟล์จากอุปกรณ์</span></p></div>
+                        <small>อัปโหลดได้หลายไฟล์พร้อมกัน</small>
+                    </div>
+                    <div class="upload-progress" id="upload-progress" aria-live="polite"><div class="progress-meta"><span id="progress-status">กำลังอัปโหลด…</span><span id="progress-percent">0%</span></div><div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div></div>
+                </section>
+
+                <section class="panel files-panel">
+                    <div class="section-heading files-heading"><div><h2>ไฟล์และโฟลเดอร์</h2><p id="list-description">รายการที่จัดเก็บบนเซิร์ฟเวอร์</p></div><button class="secondary-btn" id="new-folder"><i class="ri-folder-add-line"></i> สร้างโฟลเดอร์</button></div>
+                    <div class="toolbar"><label class="search-box"><i class="ri-search-line"></i><input type="search" id="search-input" placeholder="ค้นหาชื่อไฟล์หรือโฟลเดอร์…" aria-label="ค้นหาไฟล์"></label><label class="sort-control"><span>เรียงตาม</span><select id="sort-select" aria-label="เรียงรายการ"><option value="name">ชื่อ</option><option value="size">ขนาด</option><option value="type">ประเภท</option></select></label><button class="icon-button" id="refresh-btn" title="โหลดรายการใหม่" aria-label="โหลดรายการใหม่"><i class="ri-refresh-line"></i></button></div>
+                    <div class="file-list-head"><span>ชื่อ</span><span>ขนาด</span><span>การจัดการ</span></div>
+                    <div class="file-browser" id="file-browser"><div class="loading"><i class="ri-loader-4-line spin"></i> กำลังโหลดไฟล์…</div></div>
+                </section>
+                <footer class="page-footer">Nexus FileHub <span>·</span> จัดการไฟล์ของคุณอย่างเป็นระเบียบ</footer>
+            </div>
+        </main>
+    </div>
+
+    <div id="preview-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+        <div class="modal-content"><div class="modal-header"><div><span class="eyebrow">ตัวอย่างไฟล์</span><h3 id="preview-title">ดูตัวอย่าง</h3></div><button class="icon-button" id="close-modal" aria-label="ปิด"><i class="ri-close-line"></i></button></div><div id="preview-body" class="modal-body"></div></div>
+    </div>
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <script src="app.js"></script>
+</body>
+</html>
