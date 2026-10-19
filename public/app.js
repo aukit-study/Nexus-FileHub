@@ -9,7 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressPercent = $('#progress-percent');
     const modal = $('#preview-modal');
     const modalBody = $('#preview-body');
+    const folderModal = $('#folder-modal');
     let allFiles = [];
+    let currentFolder = '';
 
     $('#refresh-btn').addEventListener('click', fetchFiles);
     $('#search-input').addEventListener('input', renderFiles);
@@ -17,7 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#top-upload').addEventListener('click', () => { $('#upload-panel').scrollIntoView({ behavior: 'smooth' }); fileInput.click(); });
     $('#upload-nav').addEventListener('click', () => { $('#upload-panel').scrollIntoView({ behavior: 'smooth' }); fileInput.click(); });
     $('#hide-upload').addEventListener('click', () => $('#upload-panel').classList.toggle('collapsed'));
-    $('#new-folder').addEventListener('click', createFolder);
+    $('#new-folder').addEventListener('click', openFolderDialog);
+    $('#folder-form').addEventListener('submit', createFolder);
+    $('#cancel-folder').addEventListener('click', closeFolderDialog);
+    folderModal.addEventListener('click', event => { if (event.target === folderModal) closeFolderDialog(); });
+    $('#breadcrumbs').addEventListener('click', event => {
+        const button = event.target.closest('[data-folder]');
+        if (!button) return;
+        currentFolder = button.dataset.folder;
+        renderFiles();
+    });
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click(); } });
     fileInput.addEventListener('change', (event) => { handleUpload(event.target.files); fileInput.value = ''; });
@@ -26,7 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
     dropZone.addEventListener('drop', event => handleUpload(event.dataTransfer.files));
     $('#close-modal').addEventListener('click', closePreview);
     modal.addEventListener('click', event => { if (event.target === modal) closePreview(); });
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') closePreview(); });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { closePreview(); closeFolderDialog(); }
+    });
 
     function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -66,7 +79,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderFiles() {
         const query = $('#search-input').value.trim().toLocaleLowerCase();
         const sort = $('#sort-select').value;
-        const files = allFiles.filter(item => `${item.name} ${item.path}`.toLocaleLowerCase().includes(query));
+        const files = allFiles.filter(item => {
+            const parent = item.path.includes('/') ? item.path.slice(0, item.path.lastIndexOf('/')) : '';
+            return parent === currentFolder && `${item.name} ${item.path}`.toLocaleLowerCase().includes(query);
+        });
+        renderBreadcrumbs();
+        $('#upload-target').textContent = currentFolder || 'คลังไฟล์หลัก';
+        $('#folder-modal-location').textContent = `ใน ${currentFolder || 'คลังไฟล์หลัก'}`;
+        $('#list-description').textContent = currentFolder ? `โฟลเดอร์ ${currentFolder}` : 'รายการที่จัดเก็บบนเซิร์ฟเวอร์';
         files.sort((a, b) => {
             if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
             if (sort === 'size') return (b.size || 0) - (a.size || 0);
@@ -83,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const encodedPath = encodeURIComponent(item.path);
             const ext = item.name.includes('.') ? item.name.split('.').pop().toLowerCase() : '';
             if (item.type === 'directory') {
-                return `<article class="file-item"><div class="item-main"><span class="file-icon folder"><i class="ri-folder-5-fill"></i></span><div class="file-info"><div class="file-name">${name}</div><div class="file-path">${itemPath}</div></div></div><span class="file-size">โฟลเดอร์</span><div class="file-actions"><button class="action-btn delete" data-action="delete" data-path="${itemPath}" title="ลบโฟลเดอร์" aria-label="ลบ ${name}"><i class="ri-delete-bin-line"></i></button></div></article>`;
+                return `<article class="file-item"><button type="button" class="item-main folder-entry" data-action="enter" data-path="${itemPath}" aria-label="เปิดโฟลเดอร์ ${name}"><span class="file-icon folder"><i class="ri-folder-5-fill"></i></span><span class="file-info"><span class="file-name">${name}</span><span class="file-path">${itemPath}</span></span><i class="ri-arrow-right-s-line folder-chevron"></i></button><span class="file-size">โฟลเดอร์</span><div class="file-actions"><button class="action-btn delete" data-action="delete" data-path="${itemPath}" title="ลบโฟลเดอร์" aria-label="ลบ ${name}"><i class="ri-delete-bin-line"></i></button></div></article>`;
             }
             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
             const isVideo = ['mp4', 'mov', 'webm', 'ogg'].includes(ext);
@@ -98,6 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const button = event.target.closest('[data-action]');
         if (!button) return;
         const path = button.dataset.path;
+        if (button.dataset.action === 'enter') {
+            currentFolder = path;
+            $('#search-input').value = '';
+            renderFiles();
+            return;
+        }
         if (button.dataset.action === 'preview') return openPreview(path, button.dataset.name, button.dataset.type);
         if (!window.confirm(`ต้องการลบ “${path}” ใช่หรือไม่?`)) return;
         try {
@@ -109,25 +135,61 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { toast(error.message, 'error'); }
     });
 
-    async function createFolder() {
-        const name = window.prompt('ตั้งชื่อโฟลเดอร์ใหม่');
-        if (name === null) return;
-        if (!name.trim()) return toast('กรุณาระบุชื่อโฟลเดอร์', 'error');
+    function openFolderDialog() {
+        $('#folder-error').textContent = '';
+        $('#new-folder-name').value = '';
+        folderModal.classList.add('active');
+        $('#new-folder-name').focus();
+    }
+
+    function closeFolderDialog() {
+        folderModal.classList.remove('active');
+    }
+
+    async function createFolder(event) {
+        event.preventDefault();
+        const name = $('#new-folder-name').value.trim();
+        if (!name) {
+            $('#folder-error').textContent = 'กรุณากรอกชื่อโฟลเดอร์';
+            $('#new-folder-name').focus();
+            return;
+        }
         try {
-            const response = await fetch('/api/folders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: name.trim() }) });
+            const folderPath = currentFolder ? `${currentFolder}/${name}` : name;
+            const response = await fetch('/api/folders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: folderPath }) });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.error || 'สร้างโฟลเดอร์ไม่สำเร็จ');
+            if (!response.ok) {
+                $('#folder-error').textContent = result.error || 'สร้างโฟลเดอร์ไม่สำเร็จ';
+                return;
+            }
+            closeFolderDialog();
             toast('สร้างโฟลเดอร์เรียบร้อยแล้ว', 'success');
             fetchFiles();
-        } catch (error) { toast(error.message, 'error'); }
+        } catch (error) { $('#folder-error').textContent = error.message; }
+    }
+
+    function renderBreadcrumbs() {
+        const parts = currentFolder ? currentFolder.split('/') : [];
+        const crumbItems = [{ label: 'คลังไฟล์หลัก', path: '' }];
+        let path = '';
+        parts.forEach(part => {
+            path = path ? `${path}/${part}` : part;
+            crumbItems.push({ label: part, path });
+        });
+        $('#breadcrumbs').innerHTML = crumbItems.map((item, index) => {
+            const isCurrent = index === crumbItems.length - 1;
+            const content = isCurrent
+                ? `<strong aria-current="page">${escapeHtml(item.label)}</strong>`
+                : `<button type="button" data-folder="${escapeHtml(item.path)}">${escapeHtml(item.label)}</button>`;
+            return `${index ? '<i class="ri-arrow-right-s-line"></i>' : ''}${content}`;
+        }).join('');
     }
 
     function handleUpload(fileList) {
         const files = Array.from(fileList || []);
         if (!files.length) return;
         const formData = new FormData();
-        const destination = $('#folder-name').value.trim();
-        if (destination) formData.append('folderName', destination);
+        if (currentFolder) formData.append('folderName', currentFolder);
         files.forEach(file => formData.append('files', file));
         progress.classList.add('active');
         progressFill.style.width = '0%';

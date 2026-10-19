@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="overrides.css">
 </head>
 <body>
     <div class="app-shell">
@@ -28,7 +29,7 @@
 
         <main class="main-area" id="files">
             <header class="topbar">
-                <div class="crumb"><span>คลังไฟล์</span><i class="ri-arrow-right-s-line"></i><strong>ไฟล์ทั้งหมด</strong></div>
+                <nav class="crumb" id="breadcrumbs" aria-label="ตำแหน่งโฟลเดอร์"></nav>
                 <div class="top-actions">
                     <span class="avatar"><i class="ri-user-3-line"></i></span>
                 </div>
@@ -48,7 +49,7 @@
 
                 <section class="panel upload-panel" id="upload-panel">
                     <div class="section-heading"><div><h2>เพิ่มไฟล์เข้าสู่คลัง</h2><p>ลากไฟล์มาวาง หรือเลือกจากอุปกรณ์ของคุณ</p></div><button class="text-button" id="hide-upload" aria-label="ซ่อนส่วนอัปโหลด"><i class="ri-close-line"></i></button></div>
-                    <div class="upload-controls"><label class="folder-field"><span>บันทึกลงในโฟลเดอร์</span><input type="text" id="folder-name" placeholder="เช่น รูปภาพ/ทริปเชียงใหม่ (เว้นว่างเพื่อบันทึกไว้หน้าหลัก)"></label></div>
+                    <div class="upload-target"><i class="ri-folder-open-line"></i><span>ตำแหน่งอัปโหลด</span><strong id="upload-target">คลังไฟล์หลัก</strong></div>
                     <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="เลือกไฟล์เพื่ออัปโหลด">
                         <input type="file" id="file-input" multiple hidden>
                         <span class="upload-symbol"><i class="ri-upload-cloud-2-line"></i></span>
@@ -71,6 +72,17 @@
 
     <div id="preview-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="preview-title">
         <div class="modal-content"><div class="modal-header"><div><span class="eyebrow">ตัวอย่างไฟล์</span><h3 id="preview-title">ดูตัวอย่าง</h3></div><button class="icon-button" id="close-modal" aria-label="ปิด"><i class="ri-close-line"></i></button></div><div id="preview-body" class="modal-body"></div></div>
+    </div>
+    <div id="folder-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="folder-modal-title">
+        <form class="folder-dialog" id="folder-form">
+            <span class="dialog-icon"><i class="ri-folder-add-line"></i></span>
+            <h3 id="folder-modal-title">สร้างโฟลเดอร์ใหม่</h3>
+            <p id="folder-modal-location">ในคลังไฟล์หลัก</p>
+            <label for="new-folder-name">ชื่อโฟลเดอร์</label>
+            <input id="new-folder-name" name="folderName" type="text" maxlength="120" placeholder="เช่น รูปภาพท่องเที่ยว" autocomplete="off" required>
+            <div class="dialog-error" id="folder-error" aria-live="polite"></div>
+            <div class="dialog-actions"><button type="button" class="secondary-btn" id="cancel-folder">ยกเลิก</button><button type="submit" class="primary-btn"><i class="ri-add-line"></i> สร้างโฟลเดอร์</button></div>
+        </form>
     </div>
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
     <script src="app.js"></script>
