@@ -12,12 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const folderModal = $('#folder-modal');
     let allFiles = [];
     let currentFolder = '';
+    const folderHistory = [];
 
     $('#refresh-btn').addEventListener('click', fetchFiles);
     $('#search-input').addEventListener('input', renderFiles);
     $('#sort-select').addEventListener('change', renderFiles);
-    $('#top-upload').addEventListener('click', () => { $('#upload-panel').scrollIntoView({ behavior: 'smooth' }); fileInput.click(); });
-    $('#upload-nav').addEventListener('click', () => { $('#upload-panel').scrollIntoView({ behavior: 'smooth' }); fileInput.click(); });
+    $('#top-upload').addEventListener('click', openUpload);
+    $('#upload-nav').addEventListener('click', openUpload);
+    $('#root-nav').addEventListener('click', () => navigateTo(''));
+    $('#back-btn').addEventListener('click', goBack);
+    $('#up-btn').addEventListener('click', goUp);
     $('#hide-upload').addEventListener('click', () => $('#upload-panel').classList.toggle('collapsed'));
     $('#new-folder').addEventListener('click', openFolderDialog);
     $('#folder-form').addEventListener('submit', createFolder);
@@ -26,8 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#breadcrumbs').addEventListener('click', event => {
         const button = event.target.closest('[data-folder]');
         if (!button) return;
-        currentFolder = button.dataset.folder;
-        renderFiles();
+        navigateTo(button.dataset.folder);
+    });
+    $('#folder-tree').addEventListener('click', event => {
+        const button = event.target.closest('[data-folder]');
+        if (button) navigateTo(button.dataset.folder);
     });
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click(); } });
@@ -60,12 +67,40 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setTimeout(() => node.remove(), 3600);
     }
 
+    function openUpload() {
+        $('#upload-panel').classList.remove('collapsed');
+        $('#upload-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        fileInput.click();
+    }
+
+    function navigateTo(path, remember = true) {
+        if (path === currentFolder) return;
+        if (remember) folderHistory.push(currentFolder);
+        currentFolder = path;
+        $('#search-input').value = '';
+        renderFiles();
+    }
+
+    function goBack() {
+        if (!folderHistory.length) return goUp();
+        currentFolder = folderHistory.pop();
+        $('#search-input').value = '';
+        renderFiles();
+    }
+
+    function goUp() {
+        if (!currentFolder) return;
+        const parent = currentFolder.includes('/') ? currentFolder.slice(0, currentFolder.lastIndexOf('/')) : '';
+        navigateTo(parent);
+    }
+
     async function fetchFiles() {
         fileBrowser.innerHTML = '<div class="loading"><i class="ri-loader-4-line spin"></i> กำลังโหลดไฟล์…</div>';
         try {
             const response = await fetch('/api/files');
             if (!response.ok) throw new Error('โหลดรายการไฟล์ไม่สำเร็จ');
             allFiles = await response.json();
+            renderFolderTree();
             $('#list-description').textContent = `มีไฟล์ ${allFiles.filter(item => item.type === 'file').length} รายการในคลัง`;
             $('#file-count').textContent = allFiles.filter(item => item.type === 'file').length.toLocaleString('th-TH');
             $('#folder-count').textContent = allFiles.filter(item => item.type === 'directory').length.toLocaleString('th-TH');
@@ -77,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderFiles() {
+        renderFolderTree();
         const query = $('#search-input').value.trim().toLocaleLowerCase();
         const sort = $('#sort-select').value;
         const files = allFiles.filter(item => {
@@ -87,6 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#upload-target').textContent = currentFolder || 'คลังไฟล์หลัก';
         $('#folder-modal-location').textContent = `ใน ${currentFolder || 'คลังไฟล์หลัก'}`;
         $('#list-description').textContent = currentFolder ? `โฟลเดอร์ ${currentFolder}` : 'รายการที่จัดเก็บบนเซิร์ฟเวอร์';
+        $('#folder-heading').textContent = currentFolder ? currentFolder.split('/').pop() : 'ไฟล์และโฟลเดอร์';
+        $('#location-hint').textContent = currentFolder ? `ตำแหน่งปัจจุบัน: ${currentFolder}` : 'ตำแหน่งปัจจุบัน: คลังไฟล์หลัก';
+        $('#back-btn').disabled = !folderHistory.length && !currentFolder;
+        $('#up-btn').disabled = !currentFolder;
+        $('#root-nav').classList.toggle('active', !currentFolder);
         files.sort((a, b) => {
             if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
             if (sort === 'size') return (b.size || 0) - (a.size || 0);
@@ -114,14 +155,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
+    function renderFolderTree() {
+        const folders = allFiles.filter(item => item.type === 'directory').sort((a, b) => a.path.localeCompare(b.path, 'th', { numeric: true }));
+        if (!folders.length) {
+            $('#folder-tree').innerHTML = '<div class="tree-empty">ยังไม่มีโฟลเดอร์</div>';
+            return;
+        }
+        $('#folder-tree').innerHTML = folders.map(folder => {
+            const depth = folder.path.split('/').length - 1;
+            const path = escapeHtml(folder.path);
+            const name = escapeHtml(folder.name);
+            const active = currentFolder === folder.path ? ' active' : '';
+            return `<button class="tree-item${active}" style="--tree-depth:${depth}" type="button" data-folder="${path}" title="${path}"><i class="ri-folder-3-fill"></i><span>${name}</span></button>`;
+        }).join('');
+    }
+
     fileBrowser.addEventListener('click', async event => {
         const button = event.target.closest('[data-action]');
         if (!button) return;
         const path = button.dataset.path;
         if (button.dataset.action === 'enter') {
-            currentFolder = path;
-            $('#search-input').value = '';
-            renderFiles();
+            navigateTo(path);
             return;
         }
         if (button.dataset.action === 'preview') return openPreview(path, button.dataset.name, button.dataset.type);

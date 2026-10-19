@@ -19,35 +19,37 @@
                 <span class="brand-mark"><i class="ri-cloud-fill"></i></span>
                 <span><strong>Nexus</strong><small>FILEHUB</small></span>
             </a>
-            <div class="side-label">คลังไฟล์</div>
+            <div class="side-label">การเข้าถึงด่วน</div>
             <nav class="side-nav" aria-label="เมนูหลัก">
-                <a class="nav-item active" href="#files"><i class="ri-hard-drive-2-line"></i> ไฟล์ทั้งหมด</a>
+                <button class="nav-item active" id="root-nav"><i class="ri-hard-drive-2-line"></i> ไฟล์ทั้งหมด</button>
                 <button class="nav-item" id="upload-nav"><i class="ri-upload-cloud-2-line"></i> อัปโหลดไฟล์</button>
             </nav>
+            <div class="side-label folder-tree-label">โฟลเดอร์</div>
+            <nav id="folder-tree" class="folder-tree" aria-label="โฟลเดอร์ในคลัง"></nav>
             <div class="sidebar-foot"><span class="status-dot"></span><span>เซิร์ฟเวอร์พร้อมใช้งาน</span></div>
         </aside>
 
         <main class="main-area" id="files">
             <header class="topbar">
-                <nav class="crumb" id="breadcrumbs" aria-label="ตำแหน่งโฟลเดอร์"></nav>
+                <div class="explorer-location">
+                    <button class="nav-arrow" id="back-btn" title="ย้อนกลับ" aria-label="ย้อนกลับ"><i class="ri-arrow-left-line"></i></button>
+                    <button class="nav-arrow" id="up-btn" title="ขึ้นหนึ่งระดับ" aria-label="ขึ้นหนึ่งระดับ"><i class="ri-arrow-up-line"></i></button>
+                    <nav class="crumb address-bar" id="breadcrumbs" aria-label="ตำแหน่งโฟลเดอร์"></nav>
+                </div>
                 <div class="top-actions">
-                    <span class="avatar"><i class="ri-user-3-line"></i></span>
+                    <label class="search-box explorer-search"><i class="ri-search-line"></i><input type="search" id="search-input" placeholder="ค้นหาในคลังไฟล์" aria-label="ค้นหาไฟล์"></label>
                 </div>
             </header>
 
             <div class="page-content">
-                <section class="welcome-row">
-                    <div><p class="eyebrow">พื้นที่จัดเก็บของคุณ</p><h1>ไฟล์ทั้งหมด</h1><p class="subheading">จัดเก็บ ค้นหา และจัดการไฟล์ได้ในที่เดียว</p></div>
-                    <button class="primary-btn" id="top-upload"><i class="ri-upload-2-line"></i> อัปโหลดไฟล์</button>
+                <section class="explorer-actions" aria-label="คำสั่งไฟล์">
+                    <button class="secondary-btn" id="new-folder"><i class="ri-folder-add-line"></i> ใหม่</button>
+                    <span class="command-separator"></span>
+                    <button class="secondary-btn" id="top-upload"><i class="ri-upload-2-line"></i> อัปโหลด</button>
+                    <span class="command-hint" id="location-hint"></span>
                 </section>
 
-                <section class="stats-grid" aria-label="สรุปคลังไฟล์">
-                    <article class="stat-card"><span class="stat-icon purple"><i class="ri-file-list-3-line"></i></span><div><span class="stat-label">ไฟล์ทั้งหมด</span><strong id="file-count">—</strong></div></article>
-                    <article class="stat-card"><span class="stat-icon blue"><i class="ri-folder-3-line"></i></span><div><span class="stat-label">โฟลเดอร์</span><strong id="folder-count">—</strong></div></article>
-                    <article class="stat-card"><span class="stat-icon mint"><i class="ri-database-2-line"></i></span><div><span class="stat-label">พื้นที่ที่ใช้</span><strong id="storage-used">—</strong></div></article>
-                </section>
-
-                <section class="panel upload-panel" id="upload-panel">
+                <section class="panel upload-panel collapsed" id="upload-panel">
                     <div class="section-heading"><div><h2>เพิ่มไฟล์เข้าสู่คลัง</h2><p>ลากไฟล์มาวาง หรือเลือกจากอุปกรณ์ของคุณ</p></div><button class="text-button" id="hide-upload" aria-label="ซ่อนส่วนอัปโหลด"><i class="ri-close-line"></i></button></div>
                     <div class="upload-target"><i class="ri-folder-open-line"></i><span>ตำแหน่งอัปโหลด</span><strong id="upload-target">คลังไฟล์หลัก</strong></div>
                     <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="เลือกไฟล์เพื่ออัปโหลด">
@@ -60,8 +62,8 @@
                 </section>
 
                 <section class="panel files-panel">
-                    <div class="section-heading files-heading"><div><h2>ไฟล์และโฟลเดอร์</h2><p id="list-description">รายการที่จัดเก็บบนเซิร์ฟเวอร์</p></div><button class="secondary-btn" id="new-folder"><i class="ri-folder-add-line"></i> สร้างโฟลเดอร์</button></div>
-                    <div class="toolbar"><label class="search-box"><i class="ri-search-line"></i><input type="search" id="search-input" placeholder="ค้นหาชื่อไฟล์หรือโฟลเดอร์…" aria-label="ค้นหาไฟล์"></label><label class="sort-control"><span>เรียงตาม</span><select id="sort-select" aria-label="เรียงรายการ"><option value="name">ชื่อ</option><option value="size">ขนาด</option><option value="type">ประเภท</option></select></label><button class="icon-button" id="refresh-btn" title="โหลดรายการใหม่" aria-label="โหลดรายการใหม่"><i class="ri-refresh-line"></i></button></div>
+                    <div class="section-heading files-heading"><div><h2 id="folder-heading">ไฟล์และโฟลเดอร์</h2><p id="list-description">รายการที่จัดเก็บบนเซิร์ฟเวอร์</p></div></div>
+                    <div class="toolbar"><label class="sort-control"><span>เรียงตาม</span><select id="sort-select" aria-label="เรียงรายการ"><option value="name">ชื่อ</option><option value="size">ขนาด</option><option value="type">ประเภท</option></select></label><button class="icon-button" id="refresh-btn" title="โหลดรายการใหม่" aria-label="โหลดรายการใหม่"><i class="ri-refresh-line"></i></button></div>
                     <div class="file-list-head"><span>ชื่อ</span><span>ขนาด</span><span>การจัดการ</span></div>
                     <div class="file-browser" id="file-browser"><div class="loading"><i class="ri-loader-4-line spin"></i> กำลังโหลดไฟล์…</div></div>
                 </section>
