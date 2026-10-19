@@ -19,16 +19,21 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "node_modules\express" (
-    echo Dependencies are missing. Installing them now...
-    call npm install
-    if errorlevel 1 (
-        echo.
-        echo Installation failed. Check your internet connection and try again.
-        pause
-        exit /b 1
-    )
+if not exist "node_modules\express" goto install_dependencies
+if not exist "node_modules\qrcode" goto install_dependencies
+goto dependencies_ready
+
+:install_dependencies
+echo Dependencies are missing or outdated. Installing them now...
+call npm install
+if errorlevel 1 (
+    echo.
+    echo Installation failed. Check your internet connection and try again.
+    pause
+    exit /b 1
 )
+
+:dependencies_ready
 
 echo Starting Nexus FileHub...
 echo Open http://localhost:3000 in your browser.

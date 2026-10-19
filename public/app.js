@@ -304,6 +304,10 @@ document.addEventListener('DOMContentLoaded', () => {
         content.innerHTML = '<div class="share-loading"><i class="ri-loader-4-line spin"></i> กำลังเตรียม QR code…</div>';
         try {
             const response = await fetch(`/api/share${ip ? `?ip=${encodeURIComponent(ip)}` : ''}`);
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error('เซิร์ฟเวอร์ที่กำลังเปิดยังไม่มี API แชร์ QR กรุณาปิดหน้าต่างเซิร์ฟเวอร์เดิม แล้วอัปเดตโฟลเดอร์โปรเจกต์และเปิด start.bat ใหม่');
+            }
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'สร้าง QR code ไม่สำเร็จ');
             const options = result.addresses.map(address => `<option value="${escapeHtml(address)}" ${address === result.ip ? 'selected' : ''}>${escapeHtml(address)}</option>`).join('');
