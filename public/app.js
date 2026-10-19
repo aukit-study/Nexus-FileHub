@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = $('#preview-modal');
     const modalBody = $('#preview-body');
     const folderModal = $('#folder-modal');
+    const shareModal = $('#share-modal');
     let allFiles = [];
     let currentFolder = '';
     let currentView = 'dashboard';
@@ -31,6 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#folder-form').addEventListener('submit', createFolder);
     $('#cancel-folder').addEventListener('click', closeFolderDialog);
     folderModal.addEventListener('click', event => { if (event.target === folderModal) closeFolderDialog(); });
+    $('#share-button').addEventListener('click', openShareDialog);
+    $('#close-share').addEventListener('click', closeShareDialog);
+    shareModal.addEventListener('click', event => { if (event.target === shareModal) closeShareDialog(); });
+    $('#share-content').addEventListener('change', event => {
+        if (event.target.id === 'share-ip') loadShare(event.target.value);
+    });
+    $('#share-content').addEventListener('click', event => {
+        if (event.target.closest('#copy-share-url')) copyShareUrl();
+    });
     $('#breadcrumbs').addEventListener('click', event => {
         const button = event.target.closest('[data-folder]');
         if (!button) return;
@@ -56,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#close-modal').addEventListener('click', closePreview);
     modal.addEventListener('click', event => { if (event.target === modal) closePreview(); });
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { closePreview(); closeFolderDialog(); }
+        if (event.key === 'Escape') { closePreview(); closeFolderDialog(); closeShareDialog(); }
     });
 
     function escapeHtml(value) {
@@ -278,6 +288,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeFolderDialog() {
         folderModal.classList.remove('active');
+    }
+
+    function openShareDialog() {
+        shareModal.classList.add('active');
+        loadShare();
+    }
+
+    function closeShareDialog() {
+        shareModal.classList.remove('active');
+    }
+
+    async function loadShare(ip = '') {
+        const content = $('#share-content');
+        content.innerHTML = '<div class="share-loading"><i class="ri-loader-4-line spin"></i> กำลังเตรียม QR code…</div>';
+        try {
+            const response = await fetch(`/api/share${ip ? `?ip=${encodeURIComponent(ip)}` : ''}`);
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'สร้าง QR code ไม่สำเร็จ');
+            const options = result.addresses.map(address => `<option value="${escapeHtml(address)}" ${address === result.ip ? 'selected' : ''}>${escapeHtml(address)}</option>`).join('');
+            content.innerHTML = `<div class="share-layout"><div class="share-qr-wrap"><img class="share-qr" src="${result.qrCode}" alt="QR code สำหรับเปิด Nexus FileHub ที่ ${escapeHtml(result.url)}"></div><div class="share-details"><label for="share-ip">เลือกเครือข่าย</label><select id="share-ip">${options}</select><label for="share-url">ลิงก์สำหรับเปิด</label><div class="share-url-row"><input id="share-url" type="text" readonly value="${escapeHtml(result.url)}"><button class="primary-btn" id="copy-share-url" type="button" title="คัดลอกลิงก์"><i class="ri-file-copy-line"></i></button></div><span class="share-tip"><i class="ri-wifi-line"></i> อุปกรณ์ที่สแกนต้องเชื่อมต่อ Wi-Fi/LAN วงเดียวกัน</span></div></div>`;
+        } catch (error) {
+            content.innerHTML = `<div class="share-error"><i class="ri-error-warning-line"></i><span>${escapeHtml(error.message)}</span><small>ตรวจสอบว่าเครื่องเชื่อมต่อ Wi-Fi/LAN และเปิดเซิร์ฟเวอร์อยู่</small></div>`;
+        }
+    }
+
+    async function copyShareUrl() {
+        const input = $('#share-url');
+        if (!input) return;
+        try {
+            if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(input.value);
+            else {
+                input.focus();
+                input.select();
+                document.execCommand('copy');
+            }
+            toast('คัดลอกลิงก์แล้ว', 'success');
+        } catch (_) {
+            input.focus();
+            input.select();
+            toast('เลือกลิงก์แล้ว กด Ctrl+C เพื่อคัดลอก', 'error');
+        }
     }
 
     async function createFolder(event) {

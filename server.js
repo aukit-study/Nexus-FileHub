@@ -3,10 +3,25 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
+const os = require('os');
+const QRCode = require('qrcode');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const UPLOAD_ROOT = path.resolve(__dirname, 'uploads');
+
+function getLanIPv4Addresses() {
+    const addresses = Object.values(os.networkInterfaces()).flatMap(interfaces => interfaces || [])
+        .filter(info => !info.internal && (info.family === 'IPv4' || info.family === 4))
+        .map(info => info.address)
+        .filter(address => {
+            const octets = address.split('.').map(Number);
+            return octets[0] === 10 ||
+                (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+                (octets[0] === 192 && octets[1] === 168);
+        });
+    return [...new Set(addresses)];
+}
 
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -116,6 +131,29 @@ app.get('/api/files', (req, res) => {
     }
 });
 
+app.get('/api/share', async (req, res) => {
+    try {
+        const addresses = getLanIPv4Addresses();
+        if (!addresses.length) return res.status(503).json({ error: 'ไม่พบ IPv4 ในเครือข่าย LAN' });
+        const requestedIp = typeof req.query.ip === 'string' ? req.query.ip : '';
+        if (requestedIp && !addresses.includes(requestedIp)) {
+            return res.status(400).json({ error: 'ไม่พบ IP นี้ในรายการเครือข่ายของเครื่อง' });
+        }
+        const ip = requestedIp || addresses[0];
+        const url = `http://${ip}:${PORT}/`;
+        const qrCode = await QRCode.toDataURL(url, {
+            errorCorrectionLevel: 'M',
+            margin: 2,
+            width: 260,
+            color: { dark: '#182235', light: '#ffffff' }
+        });
+        res.json({ addresses, ip, url, qrCode });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'สร้าง QR code ไม่สำเร็จ' });
+    }
+});
+
 app.post('/api/folders', (req, res) => {
     try {
         const folderPath = resolveUploadPath(req.body.path);
@@ -152,4 +190,9 @@ app.delete('/api/files', (req, res) => {
     }
 });
 
-app.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server listening on http://localhost:${PORT}`);
+    const addresses = getLanIPv4Addresses();
+    if (addresses.length) addresses.forEach(address => console.log(`LAN access: http://${address}:${PORT}`));
+    else console.log('No private LAN IPv4 address found.');
+});

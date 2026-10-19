@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="overrides.css?v=dashboard-fix-1">
+    <link rel="stylesheet" href="overrides.css?v=lan-share-1">
 </head>
 <body>
     <div class="app-shell">
@@ -40,6 +40,7 @@
                 </div>
                 <div class="top-actions">
                     <label class="search-box explorer-search"><i class="ri-search-line"></i><input type="search" id="search-input" placeholder="ค้นหาในคลังไฟล์" aria-label="ค้นหาไฟล์"></label>
+                    <button class="share-button" id="share-button" title="แชร์ผ่าน QR code"><i class="ri-share-forward-line"></i><span>แชร์</span></button>
                 </div>
             </header>
 
@@ -101,7 +102,14 @@
             <div class="dialog-actions"><button type="button" class="secondary-btn" id="cancel-folder">ยกเลิก</button><button type="submit" class="primary-btn"><i class="ri-add-line"></i> สร้างโฟลเดอร์</button></div>
         </form>
     </div>
+    <div id="share-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
+        <section class="share-dialog">
+            <div class="share-dialog-heading"><div><span class="dialog-icon"><i class="ri-qr-code-line"></i></span><h3 id="share-modal-title">แชร์ Nexus FileHub</h3><p>สแกน QR code ด้วยอุปกรณ์ที่อยู่ในเครือข่ายเดียวกัน</p></div><button class="icon-button" id="close-share" aria-label="ปิด"><i class="ri-close-line"></i></button></div>
+            <div class="share-content" id="share-content"><div class="share-loading"><i class="ri-loader-4-line spin"></i> กำลังเตรียม QR code…</div></div>
+            <p class="share-note"><i class="ri-information-line"></i> ผู้ที่เปิดลิงก์นี้จะเข้าถึงและจัดการไฟล์ในคลังบนเครื่องนี้ได้</p>
+        </section>
+    </div>
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
-    <script src="app.js?v=dashboard-fix-1"></script>
+    <script src="app.js?v=lan-share-1"></script>
 </body>
 </html>
