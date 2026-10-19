@@ -53,7 +53,12 @@ const storage = multer.diskStorage({
         }
     },
     filename(req, file, callback) {
-        callback(null, uniqueFileName(file.destination, file.originalname));
+        try {
+            const destination = resolveUploadPath(req.body.folderName || '');
+            callback(null, uniqueFileName(destination, file.originalname));
+        } catch (error) {
+            callback(error);
+        }
     }
 });
 const upload = multer({
